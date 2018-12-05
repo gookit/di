@@ -2,7 +2,8 @@ package di
 
 import (
 	"errors"
-	"reflect"
+	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -16,80 +17,98 @@ type Container struct {
 
 	factories  map[string]factory
 	singletons map[string]interface{}
+	instances  map[string]interface{}
 
-	keys    map[string]uint8
+	// service names {name: initialized 0/1}
+	names   map[string]uint8
 	values  map[string]interface{}
 	rawData map[string]interface{}
 	// name aliases [alias => real name]
 	aliases map[string]string
 }
 
+var goodNameReg = regexp.MustCompile(`\w[\w-.]+`)
+
 var ErrFactoryNotFound = errors.New("container: factory is not found")
 
 // New a container
 func New() *Container {
 	return &Container{
-		keys:    make(map[string]uint8),
+		names:   make(map[string]uint8),
 		aliases: make(map[string]string),
 	}
 }
 
-// Add new service to container
-func (c *Container) Add(name string, val interface{}, aliases ...string) {
-
-}
-
-// Set
-func (c *Container) Set(name string, val interface{}, aliases ...string) {
-
-}
-
 // Get
 func (c *Container) Get(name string) (val interface{}, err error) {
-	name = c.getRealName(name)
+	realName := c.getRealName(name)
+	_, ok := c.names[realName]
+
+	if !ok {
+		return nil, fmt.Errorf("container: the '%s' service is not exist", name)
+	}
 
 	// in singletons
-	if val, ok := c.singletons[name]; ok {
+	if val, ok := c.singletons[realName]; ok {
 		return val, nil
 	}
 
 	// in factories
-	if cb, ok := c.factories[name]; ok {
+	if cb, ok := c.factories[realName]; ok {
 		return cb()
 	}
 
-	return
+	return nil, fmt.Errorf("container: the '%s' service is not exist", name)
 }
 
-// Singleton
-func (c *Container) SetSingleton(name string, val interface{}) *Container {
-	c.Lock()
+// Add new service to container
+func (c *Container) Add(name string, val interface{}, singleton bool) {
+	if c.Has(name) {
+		return
+	}
 
-	c.keys[name] = 1
-	c.singletons[name] = val
-
-	c.Unlock()
-
-	return c
+	c.Set(name, val, singleton)
 }
 
-// Factory
-func (c *Container) SetFactory(name string, factory factory) *Container {
+// Set a service to container by name
+func (c *Container) Set(name string, val interface{}, singleton bool) {
+	// check name
+	name = goodName(name)
+
 	c.Lock()
+	defer c.Unlock()
 
-	c.keys[name] = 1
-	c.factories[name] = factory
+	hasUsed, ok := c.names[name]
+	if ok && hasUsed == 1 {
+		panic(fmt.Errorf("container: cannot override the '%s', it's has been used", name))
+	}
 
-	c.Unlock()
-	return c
+	// storage
+	c.names[name] = 0
+
+	if singleton {
+		c.singletons[name] = val
+	} else {
+		c.factories[name] = val.(factory)
+	}
+}
+
+// SetSingleton Set Singleton
+func (c *Container) SetSingleton(name string, val interface{}) {
+	c.Set(name, val, true)
+}
+
+// SetFactory Set Factory
+func (c *Container) SetFactory(name string, factory factory) {
+	c.Set(name, factory, false)
 }
 
 func (c *Container) GetSingleton(name string) interface{} {
 	return c.singletons[name]
 }
 
-// 获取实例对象
-func (c *Container) GetPrototype(name string) (interface{}, error) {
+// GetInstance Get Instance from a factory
+func (c *Container) GetInstance(name string) (interface{}, error) {
 	factory, ok := c.factories[name]
 	if !ok {
 		return nil, ErrFactoryNotFound
@@ -101,20 +120,18 @@ func (c *Container) GetPrototype(name string) (interface{}, error) {
 // Has service name in the container
 func (c *Container) Has(name string) bool {
 	name = c.getRealName(name)
-	_, ok := c.keys[name]
-
+	_, ok := c.names[name]
 	return ok
 }
 
 // Del a service by name
 func (c *Container) Del(name string) bool {
 	name = c.getRealName(name)
-
-	if _, ok := c.keys[name]; !ok {
+	if _, ok := c.names[name]; !ok {
 		return false
 	}
 
-	delete(c.keys, name)
+	delete(c.names, name)
 
 	// delete aliases
 	for a, r := range c.aliases {
@@ -132,15 +149,20 @@ func (c *Container) Del(name string) bool {
 
 // Names get all registered service names
 func (c *Container) Names() (names []string) {
-	for n := range c.keys {
+	for n := range c.names {
 		names = append(names, n)
 	}
 
 	return
 }
 
-// AddAliases for a name
-func (c *Container) AddAliases(name string, aliases ...string) {
+// Aliases get aliases names
+func (c *Container) Aliases() map[string]string {
+	return c.aliases
+}
+
+// SetAliases for a name
+func (c *Container) SetAliases(name string, aliases ...string) {
 	for _, alias := range aliases {
 		c.aliases[alias] = name
 	}
@@ -150,6 +172,19 @@ func (c *Container) AddAliases(name string, aliases ...string) {
 func (c *Container) getRealName(name string) string {
 	if realName, ok := c.aliases[name]; ok {
 		return realName
+	}
+
+	return name
+}
+
+func goodName(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		panic("container: the added name cannot be empty")
+	}
+
+	if !goodNameReg.MatchString(name) {
+		panic(`container: the added name is invalid, must match regex '\w[\w-.]+'`)
 	}
 
 	return name

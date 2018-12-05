@@ -1,13 +1,13 @@
 package di
 
 import (
-	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 )
 
 // Inject component
-func (c *Container) Inject(ptr interface{}) error {
+func (c *Container) Inject(ptr interface{}) (err error) {
 	elemType := reflect.TypeOf(ptr).Elem()
 	ele := reflect.ValueOf(ptr).Elem()
 
@@ -30,8 +30,6 @@ func (c *Container) Inject(ptr interface{}) error {
 
 		// in factories
 		if cb, ok := c.factories[name]; ok {
-			var err error
-
 			diInstance, err = cb()
 			if err != nil {
 				return err
@@ -39,13 +37,13 @@ func (c *Container) Inject(ptr interface{}) error {
 		}
 
 		if diInstance == nil {
-			return errors.New(name + " dependency not found")
+			return fmt.Errorf("dependency not found: %s", name)
 		}
 
 		ele.Field(i).Set(reflect.ValueOf(diInstance))
 	}
 
-	return nil
+	return
 }
 
 // 获取需要注入的依赖名称
