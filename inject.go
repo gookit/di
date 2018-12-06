@@ -20,7 +20,7 @@ func (c *Container) Inject(ptr interface{}) (err error) {
 			continue
 		}
 
-		diInstance, err := c.Get(name)
+		diInstance, err := c.SafeGet(name)
 		if err != nil {
 			return fmt.Errorf("dependency not found: %s", name)
 		}

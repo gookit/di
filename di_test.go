@@ -40,20 +40,23 @@ func TestContainer(t *testing.T) {
 	ris.Contains(Box.Aliases(), "the-s1")
 
 	// Get value
-	val, err := Get("s1")
+	val, err := SafeGet("s1")
 	ris.Nil(err)
 	ris.Equal("ABC", val)
 
 	// get by alias name
-	val, err = Get("the-s1")
+	val, err = SafeGet("the-s1")
 	ris.Nil(err)
 	ris.Equal("ABC", val)
 
-	val, err = Get("s2")
-	ris.Nil(err)
+	val = Get("s2")
 	ris.Equal("val2", val)
 
-	val, err = Get("not-exist")
+	ris.Panics(func() {
+		Get("not-exist")
+	})
+
+	val, err = SafeGet("not-exist")
 	ris.Error(err)
 	ris.Nil(val)
 
@@ -105,11 +108,11 @@ func TestContainer_SetSingleton(t *testing.T) {
 	ris.Equal(reflect.TypeOf(s1), reflect.TypeOf(val))
 
 	// get
-	val1, err := Get("st1")
+	val1, err := SafeGet("st1")
 	ris.Nil(err)
 
 	// get again
-	val2, err := Get("st1")
+	val2, err := SafeGet("st1")
 	ris.Nil(err)
 
 	// value always is equals.
@@ -140,11 +143,11 @@ func TestContainer_SetFactory(t *testing.T) {
 	ris.False(ok)
 
 	// get
-	val1, err := Get("f1")
+	val1, err := SafeGet("f1")
 	ris.Nil(err)
 
 	// get again
-	val2, err := Get("f1")
+	val2, err := SafeGet("f1")
 	ris.Nil(err)
 
 	// value always is not equals.

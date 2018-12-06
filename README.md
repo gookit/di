@@ -33,26 +33,32 @@ func main() {
     
     // register by callback func.
     box.Set("service2", func() (interface, error) (
-    	return "val2", nil
+    	return &MyApp{}, nil
     ))
     
-    // add a factory
+    // register a factory func.
     box.Set("service3", func() (interface, error) (
-    	return "val3", nil
+    	return &MyObject{}, nil
     ), true)
     
     // get 
-    val1, err := box.Get("service1")
-    val2, err := box.Get("service2")
+    v1 := box.Get("service1") // "val1"
     
-    // ...
+    // is a singleton value. Notice: v3 == v4
+    v2 := box.Get("service2").(*MyApp)
+    v3 := box.Get("service2").(*MyApp)
+    
+    // is factory func. Notice: v4 != v5
+    v4 := box.Get("service3").(*MyObject)
+    v5 := box.Get("service3").(*MyObject)
 }
 ```
 
 ## API Methods
 
 - `func (c *Container) Set(name string, val interface{}, isFactory ...bool) *Container`
-- `func (c *Container) Get(name string) (val interface{}, err error)`
+- `func (c *Container) Get(name string) interface{}`
+- `func (c *Container) SafeGet(name string) (val interface{}, err error)`
 - `func (c *Container) Inject(ptr interface{}) (err error)`
 
 ## Refer

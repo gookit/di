@@ -48,8 +48,18 @@ func New() *Container {
  * Get service
  *************************************************************/
 
-// Get a value by name
-func (c *Container) Get(name string) (val interface{}, err error) {
+// Get a service by name
+func (c *Container) Get(name string) interface{} {
+	val, err := c.SafeGet(name)
+	if err != nil {
+		panic(err)
+	}
+
+	return val
+}
+
+// SafeGet safe get a service by name
+func (c *Container) SafeGet(name string) (val interface{}, err error) {
 	realName := c.RealName(name)
 
 	// check exist.
@@ -157,7 +167,7 @@ func (c *Container) Add(name string, val interface{}, isFactory ...bool) *Contai
 	return c.Set(name, val, isFactory...)
 }
 
-// SetSingleton Set Singleton
+// SetSingleton set a singleton value
 func (c *Container) SetSingleton(name string, val interface{}) *Container {
 	return c.Set(name, val, false)
 }

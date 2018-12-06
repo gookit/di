@@ -4,8 +4,13 @@ package di
 var Box = New()
 
 // Get service component from the global container
-func Get(name string) (interface{}, error) {
+func Get(name string) interface{} {
 	return Box.Get(name)
+}
+
+// SafeGet service component from the global container
+func SafeGet(name string) (interface{}, error) {
+	return Box.SafeGet(name)
 }
 
 // Set a service component to the global container
