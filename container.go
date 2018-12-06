@@ -2,6 +2,7 @@ package di
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -9,6 +10,8 @@ import (
 
 // FactoryFunc service build func
 type FactoryFunc func() (interface{}, error)
+
+// type FactoryFunc func(c *Container) (interface{}, error)
 
 // Container struct definition
 type Container struct {
@@ -90,9 +93,12 @@ func (c *Container) SafeGet(name string) (val interface{}, err error) {
 	// cb, ok := val.(FactoryFunc) // ERROR: Can't check correctly.
 	if cb, ok := val.(func() (interface{}, error)); ok {
 		val, err = cb()
-		// storage to instances
-		c.instances[realName] = val
+		// c.instances[realName] = val
+	} else if cb, ok := val.(func(c *Container) (interface{}, error)); ok {
+		val, err = cb(c)
 	}
+
+	c.instances[realName] = val
 
 	return
 }
@@ -178,6 +184,34 @@ func (c *Container) SetSingleton(name string, val interface{}) *Container {
 // SetFactory Set Factory
 func (c *Container) SetFactory(name string, factory FactoryFunc) *Container {
 	return c.Set(name, factory, true)
+}
+
+/*************************************************************
+ * Inject deps
+ *************************************************************/
+
+// Inject services by struct tags.
+func (c *Container) Inject(ptr interface{}) error {
+	elemVal := reflect.ValueOf(ptr).Elem()
+	elemType := reflect.TypeOf(ptr).Elem()
+
+	for i := 0; i < elemType.NumField(); i++ {
+		// get tag info. eg: `DI:"request"`
+		name := elemType.Field(i).Tag.Get("DI")
+		name = strings.TrimSpace(name)
+		if name == "" { // no tag info
+			continue
+		}
+
+		diInstance, err := c.SafeGet(name)
+		if err != nil {
+			return fmt.Errorf("dependency '%s' not found in the container", name)
+		}
+
+		elemVal.Field(i).Set(reflect.ValueOf(diInstance))
+	}
+
+	return nil
 }
 
 /*************************************************************

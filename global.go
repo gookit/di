@@ -1,3 +1,9 @@
+// Package di is an dependency injection container implements.
+//
+// Source code and other details for the project are available at GitHub:
+//
+// 	https://github.com/gookit/config
+//
 package di
 
 // Box always create a global container

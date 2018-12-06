@@ -23,6 +23,10 @@ func TestContainer(t *testing.T) {
 	Set("s2", "val2")
 	Box.Add("s2", "new-val")
 	Box.Add("s3", "val3")
+	Box.Set("s4", func(c *Container) (interface{}, error) {
+		s1val := c.Get("s1").(string)
+		return "S4:" + s1val, nil
+	})
 
 	// invalid name
 	ris.Panics(func() {
@@ -53,6 +57,9 @@ func TestContainer(t *testing.T) {
 
 	val = Get("s2")
 	ris.Equal("val2", val)
+
+	val = Get("s4")
+	ris.Equal("S4:ABC", val)
 
 	ris.Panics(func() {
 		Get("not-exist")
@@ -124,7 +131,6 @@ func TestContainer_SetSingleton(t *testing.T) {
 	ris.Panics(func() {
 		Box.SetSingleton("st1", "val")
 	})
-
 }
 
 func TestContainer_SetFactory(t *testing.T) {
