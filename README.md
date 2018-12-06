@@ -49,6 +49,12 @@ func main() {
 }
 ```
 
+## API Methods
+
+- `func (c *Container) Set(name string, val interface{}, isFactory ...bool) *Container`
+- `func (c *Container) Get(name string) (val interface{}, err error)`
+- `func (c *Container) Inject(ptr interface{}) (err error)`
+
 ## Refer
 
 - https://github.com/sarulabs/di

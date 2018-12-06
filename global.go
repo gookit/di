@@ -9,8 +9,8 @@ func Get(name string) (interface{}, error) {
 }
 
 // Set a service component to the global container
-func Set(name string, val interface{}, singleton ...bool) *Container {
-	return Box.Set(name, val, singleton...)
+func Set(name string, val interface{}, isFactory ...bool) *Container {
+	return Box.Set(name, val, isFactory...)
 }
 
 // Has name in the global container

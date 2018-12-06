@@ -10,8 +10,6 @@ import (
 // FactoryFunc service build func
 type FactoryFunc func() (interface{}, error)
 
-// type diFactory func(c *Container) (interface{}, error)
-
 // Container struct definition
 type Container struct {
 	sync.Mutex
@@ -32,9 +30,7 @@ type Container struct {
 	instances map[string]interface{}
 }
 
-var (
-	goodNameReg = regexp.MustCompile(`^[a-zA-Z][\w-.]+$`)
-)
+var goodNameReg = regexp.MustCompile(`^[a-zA-Z][\w-.]+$`)
 
 // New a container
 func New() *Container {
@@ -128,17 +124,12 @@ func (c *Container) Factory(name string) (fn FactoryFunc, ok bool) {
 // Usage:
 // 	c.Set("service1", ...)
 // 	c.Set("service1", ..., true)
-func (c *Container) Set(name string, val interface{}, singleton ...bool) *Container {
+func (c *Container) Set(name string, val interface{}, isFactory ...bool) *Container {
 	// check name
 	name = goodName(name)
 	hasUsed, ok := c.names[name]
 	if ok && hasUsed == 1 {
 		panic(fmt.Errorf("container: cannot override the '%s', it's has been used", name))
-	}
-
-	isSingleton := true
-	if len(singleton) > 0 {
-		isSingleton = singleton[0]
 	}
 
 	c.Lock()
@@ -147,33 +138,33 @@ func (c *Container) Set(name string, val interface{}, singleton ...bool) *Contai
 	// storage name
 	c.names[name] = 0
 
-	// storage service value
-	if isSingleton {
-		c.values[name] = val
-	} else {
+	// is factory?
+	if len(isFactory) > 0 && isFactory[0] {
 		c.factories[name] = val.(FactoryFunc)
+	} else {
+		c.values[name] = val
 	}
 
 	return c
 }
 
 // Add new service to container
-func (c *Container) Add(name string, val interface{}, singleton ...bool) *Container {
+func (c *Container) Add(name string, val interface{}, isFactory ...bool) *Container {
 	if c.Has(name) {
 		return c
 	}
 
-	return c.Set(name, val, singleton...)
+	return c.Set(name, val, isFactory...)
 }
 
 // SetSingleton Set Singleton
 func (c *Container) SetSingleton(name string, val interface{}) *Container {
-	return c.Set(name, val, true)
+	return c.Set(name, val, false)
 }
 
 // SetFactory Set Factory
 func (c *Container) SetFactory(name string, factory FactoryFunc) *Container {
-	return c.Set(name, factory, false)
+	return c.Set(name, factory, true)
 }
 
 /*************************************************************
