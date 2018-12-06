@@ -1,7 +1,7 @@
 package di
 
 // Box always create a global container
-var Box = New()
+var Box = New("global")
 
 // Get service component from the global container
 func Get(name string) interface{} {

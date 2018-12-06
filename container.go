@@ -13,6 +13,7 @@ type FactoryFunc func() (interface{}, error)
 // Container struct definition
 type Container struct {
 	sync.Mutex
+	name string
 
 	// service names
 	// {name: has used? 0/1}
@@ -30,11 +31,13 @@ type Container struct {
 	instances map[string]interface{}
 }
 
-var goodNameReg = regexp.MustCompile(`^[a-zA-Z][\w-.]+$`)
+var goodNameReg = regexp.MustCompile(`^[a-zA-Z][\w-.]*$`)
 
 // New a container
-func New() *Container {
+func New(name string) *Container {
 	return &Container{
+		name: name,
+
 		names:   make(map[string]uint8),
 		values:  make(map[string]interface{}),
 		aliases: make(map[string]string),
@@ -253,6 +256,11 @@ func (c *Container) SetAlias(name string, aliases ...string) {
 // Aliases get aliases names
 func (c *Container) Aliases() map[string]string {
 	return c.aliases
+}
+
+// Name get container name
+func (c *Container) Name() string {
+	return c.name
 }
 
 // Names get all registered service names

@@ -16,6 +16,8 @@ func TestContainer(t *testing.T) {
 		return "ABC", nil
 	}
 
+	ris.Equal("global", Box.Name())
+
 	// Set
 	Set("s1", s1).AddAlias("s1", "the-s1")
 	Set("s2", "val2")
@@ -166,6 +168,56 @@ func TestContainer_SetFactory(t *testing.T) {
 	ris.False(Box.Has("f1"))
 }
 
+type A struct {
+	T  *time.Time `DI:"time"`
+	T1 *time.Time `DI:"time"`
+	B  *B         `DI:"b"`
+	B1 *B         `DI:"b"`
+	B2 *B         `DI:""` // invalid name
+}
+
+type B struct {
+	Name string
+}
+
 func TestContainer_Inject(t *testing.T) {
-	//
+	ris := assert.New(t)
+
+	c := New("inject")
+	ris.Equal("inject", c.Name())
+
+	c.Set("b", func() (interface{}, error) {
+		return &B{"b-" + time.Now().String()}, nil
+	})
+
+	c.SetFactory("time", func() (interface{}, error) {
+		t := time.Now()
+		return &t, nil
+	})
+
+	a := &A{}
+	ris.Empty(a.B)
+	ris.Empty(a.T)
+
+	// Inject
+	err := c.Inject(a)
+	ris.Nil(err)
+
+	ris.Empty(a.B2)
+
+	// fmt.Printf("%+v\n", a)
+	ris.NotEmpty(a.B)
+	ris.Equal(a.B, a.B1)
+
+	ris.NotEmpty(a.T)
+	ris.NotEqual(a.T, a.T1)
+
+	d := &struct {
+		C *B `DI:"s1"`
+	}{}
+
+	// Inject
+	err = c.Inject(d)
+	ris.Error(err)
+	ris.Equal("dependency 's1' not found in the container", err.Error())
 }
