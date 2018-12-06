@@ -44,7 +44,7 @@ func main() {
     // get 
     v1 := box.Get("service1") // "val1"
     
-    // is a singleton value. Notice: v3 == v4
+    // is a singleton value. Notice: v2 == v3
     v2 := box.Get("service2").(*MyApp)
     v3 := box.Get("service2").(*MyApp)
     
