@@ -1,6 +1,6 @@
 package di
 
-// always create a global container
+// Box always create a global container
 var Box = New()
 
 // Get service component from the global container
